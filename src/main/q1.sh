@@ -5,6 +5,16 @@ set -eu
 input=${1:?需要输入目录}
 output=${2:?需要输出目录}
 
-# TODO：删除下方提示和 exit 77，再填写你的命令。
-printf '%s\n' 'Q1 尚未实现' >&2
-exit 77
+# 把传入路径统一规范成绝对路径，避免 cd 之后相对路径失效
+input=$(cd "$input" && pwd)
+output=$(cd "$output" && pwd)
+
+# 1) 进入 handover/，把当前目录的绝对路径记录下来
+cd "$input/handover"
+pwd > "$output/location.txt"
+
+# 2) 读取隐藏文件 .robot-id 的完整内容
+cat .robot-id > "$output/robot-id.txt"
+
+# 3) 读取欢迎文本的完整内容
+cat "$input/notes/welcome.txt" > "$output/welcome.txt"
