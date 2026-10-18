@@ -5,6 +5,26 @@ set -eu
 input=${1:?需要输入目录}
 output=${2:?需要输出目录}
 
-# TODO：删除下方提示和 exit 77，再填写你的命令。
-printf '%s\n' 'Q5 尚未实现' >&2
-exit 77
+# 教师为本次场景生成的参数（LAUNCH_TOOL / MODEL_PATH / CAMERA_PATH）
+source "$input/launch.env"
+
+# 运行检查程序：两路输出分别落盘，真实退出码用 if/else 捕获。
+# 不能用 "cmd || true" 再取 $?，那样拿到的是 true 的 0。
+if bash "$LAUNCH_TOOL" "$MODEL_PATH" "$CAMERA_PATH" \
+    > "$output/stdout.log" 2> "$output/stderr.log"; then
+    exit_code=0
+else
+    exit_code=$?
+fi
+
+# 退出码是唯一可信依据：stderr 有没有内容都不能用来判断成败
+case "$exit_code" in
+    0)  result=SUCCESS; reason=NONE ;;
+    10) result=FAILED;  reason=MODEL_MISSING ;;
+    20) result=FAILED;  reason=CAMERA_DENIED ;;
+    *)  result=FAILED;  reason=UNKNOWN ;;
+esac
+
+printf '%s\n' "$exit_code" > "$output/exit-code.txt"
+printf 'result=%s\nexit_code=%s\nreason=%s\n' \
+    "$result" "$exit_code" "$reason" > "$output/report.txt"
